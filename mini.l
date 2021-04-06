@@ -9,6 +9,8 @@
 
 %}
 
+%x COMENTARIO
+
 SP             [ \t]
 SN             [ \n]
 IDENTIFICADOR [[:alpha:]_][[:alpha:]_0-9]*
@@ -18,9 +20,21 @@ ENTERO_DEC [0-9]+
 ENTERO_OCT #[0-7]+
 ENTERO_HEX #[Hh][0-9A-Fa-f]+
 REAL_PARTE_ENTERA [{ENTEROS_DEC}{ENTEROS_HEX}{ENTEROS_OCT}][.][{ENTEROS_DEC}{ENTEROS_HEX}{ENTEROS_OCT}]
+DELIMITADOR       [\(\)\{\}\?\;\:\,]
+COMENTARIO_CORTO     \##\\n.*
+OP_ARITMETICO        [\+\-\*\/\%]
+OP_BITS              [\&\|\@\~]
+OP_RELACIONAL        [\<\>]
+OP_LOGICO            [\!]
+OP_ASIGNACION        [\=]
+OP_MEMORIA           [\.\[\]\{\}\^\\] 
+
 
 
 %%
+
+
+\n                linea++;
 
 (?i:array)        {printf("linea %d, palabra reservada: %s\n", linea, yytext);
                   return(ARRAY);}
@@ -103,17 +117,34 @@ REAL_PARTE_ENTERA [{ENTEROS_DEC}{ENTEROS_HEX}{ENTEROS_OCT}][.][{ENTEROS_DEC}{ENT
 (?i:tamano)        {printf("linea %d, palabra reservada: %s\n", linea, yytext);
                   return(TAMANO);}
 
-{IDENTIFICADOR}   {printf("linea %d\n, identificador: %s\n", linea, yytext);}
-{ENTERO_DEC}      {printf("entero %s\n", yytext);}
-{ENTERO_OCT}      {printf("octal %s\n", yytext);}
-{ENTERO_HEX}      {printf("hexadecimal %s\n", yytext);}
-{REAL_PARTE_ENTERA} {printf("real %s\n", yytext);}
 
-'**'             return(POTENCIA);
-'=+'             return (SUMA_ASIG);
-'=-'             return (RESTA_ASIG);
+{IDENTIFICADOR}   {printf("linea %d, identificador: %s\n", linea, yytext);
+                  return(IDENTIFICADOR);}
 
-\n                linea++;
+
+{DELIMITADOR}     {printf("linea %d, delimitador: %s\n", linea, yytext);}
+
+{OP_ARITMETICO}        {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(yytext[0]);}
+{OP_BITS}              {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(yytext[0]);}
+{OP_RELACIONAL}        {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(yytext[0]);}
+{OP_LOGICO}            {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(yytext[0]);}
+{OP_ASIGNACION}        {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(yytext[0]);}
+{OP_MEMORIA}           {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(yytext[0]);}
+
+"**"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(POTENCIA);}             
+
+"#-"              BEGIN(COMENTARIO);
+<COMENTARIO>.|\n ;
+<COMENTARIO>"-#"  BEGIN(INITIAL);
+
+.                 ;/*{printf("linea: %d, error: %s\n",linea,yytext); return(yytext[0]);}*/
 
 
 %%
@@ -131,4 +162,10 @@ int main(int argc, char *argv[]) {
     yyin = fopen(argv[1],"r");
     while (yylex());
     }
+    /*
+    {ENTERO_DEC}      {printf("entero %s\n", yytext);}
+    {ENTERO_OCT}      {printf("octal %s\n", yytext);}
+    {ENTERO_HEX}      {printf("hexadecimal %s\n", yytext);}
+    {REAL_PARTE_ENTERA} {printf("real %s\n", yytext);}
+    */
   }
