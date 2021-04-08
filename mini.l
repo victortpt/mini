@@ -10,18 +10,28 @@
 %}
 
 %x COMENTARIO
+%x COMENTARIO_LINEA
 
-SP             [ \t]
-SN             [ \n]
-IDENTIFICADOR [[:alpha:]_][[:alpha:]_0-9]*
+SP                [ \t]
+SN                [ \n]
+IDENTIFICADOR     [[:alpha:]_][[:alpha:]_0-9]*
 TOKEN_UN_CARACTER [A-Z]
 
-ENTERO_DEC [0-9]+
-ENTERO_OCT #[0-7]+
-ENTERO_HEX #[Hh][0-9A-Fa-f]+
-REAL_PARTE_ENTERA [{ENTEROS_DEC}{ENTEROS_HEX}{ENTEROS_OCT}][.][{ENTEROS_DEC}{ENTEROS_HEX}{ENTEROS_OCT}]
-DELIMITADOR       [\(\)\{\}\?\;\:\,]
-COMENTARIO_CORTO     \##\\n.*
+ENTERO_DEC        [0-9]+
+ENTERO_OCT        #[0-7]+
+ENTERO_HEX        #[Hh][0-9A-Fa-f]+
+ENTERO            {ENTERO_DEC}|{ENTERO_HEX}|{ENTERO_OCT}
+REAL_DEC          [0-9]*\.{ENTERO_DEC}
+REAL_HEX          #[Hh][0-9A-Fa-f]*\.[0-9A-Fa-f]+
+REAL_OCT          #[0-7]*\.[0-7]+
+REAL              {REAL_DEC}|{REAL_HEX}|{REAL_OCT}
+REAL_EXP          ({ENTERO}|{REAL})exp[+-]?{ENTERO}
+
+CARACTER_ESCAPADO          '#[\'\#abfnrtv]'
+CARACTER                   '[^\#'\n]'|{CARACTER_ESCAPADO}|'\#[1]{1}[0-7]{2}'|'\#[Hh][0-7]{1}[0-9A-Fa-f]'
+RUTA                       [^|][^|///\n]+[|$]
+
+DELIMITADOR          [\(\)\{\}\;\:\,]
 OP_ARITMETICO        [\+\-\*\/\%]
 OP_BITS              [\&\|\@\~]
 OP_RELACIONAL        [\<\>]
@@ -29,7 +39,7 @@ OP_LOGICO            [\!]
 OP_ASIGNACION        [\=]
 OP_MEMORIA           [\.\[\]\{\}\^\\] 
 
-
+ 
 
 %%
 
@@ -121,6 +131,15 @@ OP_MEMORIA           [\.\[\]\{\}\^\\]
 {IDENTIFICADOR}   {printf("linea %d, identificador: %s\n", linea, yytext);
                   return(IDENTIFICADOR);}
 
+{ENTERO}      {printf("linea %d, ctc entera: %s\n", linea, yytext);
+                                            return(CTC_ENTERA);}
+
+{REAL}|{REAL_EXP}      {printf("linea %d, ctc real: %s\n", linea, yytext);
+                                            return(CTC_REAL);}
+{CARACTER}             {printf("linea %d, ctc caracter: %s\n", linea, yytext);
+                        return(CTC_CARACTER);}
+{RUTA}                  {printf("linea %d, ruta: %s\n", linea, yytext);
+                        return(RUTA);}                                     
 
 {DELIMITADOR}     {printf("linea %d, delimitador: %s\n", linea, yytext);}
 
@@ -138,11 +157,54 @@ OP_MEMORIA           [\.\[\]\{\}\^\\]
                         return(yytext[0]);}
 
 "**"                   {printf("linea %d, operador: %s\n", linea, yytext);
-                        return(POTENCIA);}             
+                        return(POTENCIA);}
+"<-"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(FLECHA_IZDA);} 
+"->"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(FLECHA_DCHA);} 
+"&&"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(AND);} 
+"||"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(OR);} 
+"=<"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(LE);} 
+"=>"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(GE);} 
+"=="                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(EQ);} 
+"!="                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(NEQ);} 
+"=+"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(SUMA_ASIG);}
+"=-"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(RESTA_ASIG);} 
+"=*"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(MULT_ASIG);} 
+"=/"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(DIV_ASIG);} 
+"=%"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(MOD_ASIG);} 
+"=**"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(POT_ASIG);} 
+"=<-"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(FI_ASIG);} 
+"=->"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(FD_ASIG);} 
+"=&"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(AND_ASIG);} 
+"=@"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(XOR_ASIG);}
+"=|"                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(OR_ASIG);}   
+"^."                   {printf("linea %d, operador: %s\n", linea, yytext);
+                        return(INDIRECCION);}                               
 
 "#-"              BEGIN(COMENTARIO);
 <COMENTARIO>.|\n ;
 <COMENTARIO>"-#"  BEGIN(INITIAL);
+
+"##"              BEGIN(COMENTARIO_LINEA);
+<COMENTARIO_LINEA>"\n"  BEGIN(INITIAL);
 
 .                 ;/*{printf("linea: %d, error: %s\n",linea,yytext); return(yytext[0]);}*/
 
@@ -162,10 +224,5 @@ int main(int argc, char *argv[]) {
     yyin = fopen(argv[1],"r");
     while (yylex());
     }
-    /*
-    {ENTERO_DEC}      {printf("entero %s\n", yytext);}
-    {ENTERO_OCT}      {printf("octal %s\n", yytext);}
-    {ENTERO_HEX}      {printf("hexadecimal %s\n", yytext);}
-    {REAL_PARTE_ENTERA} {printf("real %s\n", yytext);}
-    */
-  }
+
+}
