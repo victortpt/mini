@@ -11,9 +11,10 @@
 
 %x COMENTARIO
 %x COMENTARIO_LINEA
+%x STRING
+%x PATH
 
-SP                [ \t]
-SN                [ \n]
+
 IDENTIFICADOR     [[:alpha:]_][[:alpha:]_0-9]*
 TOKEN_UN_CARACTER [A-Z]
 
@@ -29,7 +30,9 @@ REAL_EXP          ({ENTERO}|{REAL})exp[+-]?{ENTERO}
 
 CARACTER_ESCAPADO          '#[\'\#abfnrtv]'
 CARACTER                   '[^\#'\n]'|{CARACTER_ESCAPADO}|'\#[1]{1}[0-7]{2}'|'\#[Hh][0-7]{1}[0-9A-Fa-f]'
-RUTA                       [^|][^|///\n]+[|$]
+FICHERO                    [[:alpha:]_0-9]+\.[:alpha:]+
+DIRECTORIO                 [\/?[:alpha:]_][[:alpha:]_0-9]*
+RUTA                       \|((\/)?([^\n|\/])+\/)*([^\n\|\/]+\.[^\n|\/]+)\|
 
 DELIMITADOR          [\(\)\{\}\;\:\,]
 OP_ARITMETICO        [\+\-\*\/\%]
@@ -37,7 +40,10 @@ OP_BITS              [\&\|\@\~]
 OP_RELACIONAL        [\<\>]
 OP_LOGICO            [\!]
 OP_ASIGNACION        [\=]
-OP_MEMORIA           [\.\[\]\{\}\^\\] 
+OP_MEMORIA           [\.\[\]\{\}\^\\]
+
+ESCAPES	             \ |\n|\t|\v|\r
+COM		               "##"[^\n]*
 
  
 
@@ -139,9 +145,25 @@ OP_MEMORIA           [\.\[\]\{\}\^\\]
 {CARACTER}             {printf("linea %d, ctc caracter: %s\n", linea, yytext);
                         return(CTC_CARACTER);}
 {RUTA}                  {printf("linea %d, ruta: %s\n", linea, yytext);
-                        return(RUTA);}                                     
+                        return(RUTA);}
 
-{DELIMITADOR}     {printf("linea %d, delimitador: %s\n", linea, yytext);}
+{FICHERO}               {printf("fichero %s\n", yytext);}                                     
+
+
+\'                      {printf("linea %d, cadena: %s", linea, yytext);
+                        BEGIN(STRING);}
+<STRING>\n          {linea++;
+                        printf("%s", yytext);}
+<STRING>\#[\'\#abfnrtv]              printf("%s", yytext);
+<STRING>\#[1]{1}[0-7]{2}             printf("%s", yytext);
+<STRING>\#[Hh][0-7]{1}[0-9A-Fa-f]    printf("%s", yytext);
+<STRING>"\'"            {BEGIN(INITIAL);
+                        printf("%s\n", yytext);
+                        return(CTC_CADENA);}
+
+
+
+{DELIMITADOR}           {printf("linea %d, delimitador: %s\n", linea, yytext);}
 
 {OP_ARITMETICO}        {printf("linea %d, operador: %s\n", linea, yytext);
                         return(yytext[0]);}
@@ -203,10 +225,12 @@ OP_MEMORIA           [\.\[\]\{\}\^\\]
 <COMENTARIO>.|\n ;
 <COMENTARIO>"-#"  BEGIN(INITIAL);
 
-"##"              BEGIN(COMENTARIO_LINEA);
-<COMENTARIO_LINEA>"\n"  BEGIN(INITIAL);
 
-.                 ;/*{printf("linea: %d, error: %s\n",linea,yytext); return(yytext[0]);}*/
+
+{COM}
+{ESCAPES}             
+
+.                 {printf("linea %d, error encontrado: %s\n", linea, yytext);}
 
 
 %%
