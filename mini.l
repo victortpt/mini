@@ -10,9 +10,7 @@
 %}
 
 %x COMENTARIO
-%x COMENTARIO_LINEA
 %x STRING
-%x PATH
 
 
 IDENTIFICADOR     [[:alpha:]_][[:alpha:]_0-9]*
@@ -221,8 +219,9 @@ COM		               "##"[^\n]*
 "^."                   {printf("linea %d, operador: %s\n", linea, yytext);
                         return(INDIRECCION);}                               
 
-"#-"              BEGIN(COMENTARIO);
-<COMENTARIO>.|\n ;
+"#-"              BEGIN(COMENTARIO); 
+<COMENTARIO>\n    linea++;
+<COMENTARIO>.     ;
 <COMENTARIO>"-#"  BEGIN(INITIAL);
 
 
@@ -242,7 +241,7 @@ int yywrap() {
 int main(int argc, char *argv[]) {
 
   if (argc < 2) {
-    printf("Uso: ./mini NombreArchivo\n");
+    printf("Uso: ./BustoMejuto NombreArchivo\n");
     }
   else {
     yyin = fopen(argv[1],"r");
